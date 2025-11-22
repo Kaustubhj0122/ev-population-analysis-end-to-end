@@ -1,0 +1,8 @@
+pandas
+numpy
+sqlalchemy
+pymysql
+mysql-connector-python
+python-dotenv
+requests
+openpyxl

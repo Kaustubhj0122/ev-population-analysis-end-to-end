@@ -1,0 +1,161 @@
+==========================================
+POWER BI – DAX MEASURES FOR EV DASHBOARD
+==========================================
+
+This file contains all recommended DAX measures used to build
+the Electric Vehicle Population Dashboard.
+
+------------------------------------------------------------
+1. BASIC METRICS
+------------------------------------------------------------
+
+Total Vehicles =
+COUNTROWS('EV_Data')
+
+Total BEV =
+CALCULATE(
+    COUNTROWS('EV_Data'),
+    'EV_Data'[Electric Vehicle Type] = "Battery Electric Vehicle (BEV)"
+)
+
+Total PHEV =
+CALCULATE(
+    COUNTROWS('EV_Data'),
+    'EV_Data'[Electric Vehicle Type] = "Plug-in Hybrid Electric Vehicle (PHEV)"
+)
+
+Pct CAFV Eligible =
+VAR total = [Total Vehicles]
+VAR eligible =
+    CALCULATE(
+        COUNTROWS('EV_Data'),
+        'EV_Data'[CAFV_Eligibility] = "Clean Alternative Fuel Vehicle Eligible"
+    )
+RETURN
+DIVIDE(eligible, total, 0)
+
+
+
+------------------------------------------------------------
+2. RANGE / PRICE STATS
+------------------------------------------------------------
+
+Avg Range =
+AVERAGE('EV_Data'[Electric Range])
+
+Avg MSRP =
+AVERAGE('EV_Data'[Base MSRP])
+
+Max MSRP =
+CALCULATE(
+    MAX('EV_Data'[Base MSRP])
+)
+
+Min MSRP =
+CALCULATE(
+    MIN('EV_Data'[Base MSRP])
+)
+
+Avg Range by Make =
+AVERAGE('EV_Data'[Electric Range])
+
+
+
+
+------------------------------------------------------------
+3. BATTERY / PRICE / RANGE CATEGORIES
+------------------------------------------------------------
+
+Range Category =
+IF(
+    'EV_Data'[Electric Range] > 200, "High",
+    IF('EV_Data'[Electric Range] >= 100, "Medium", "Low")
+)
+
+Price Category =
+IF(
+    'EV_Data'[Base MSRP] > 100000, "High",
+    IF('EV_Data'[Base MSRP] >= 60000, "Medium", "Low")
+)
+
+Battery Category =
+IF(
+    'EV_Data'[Battery_kwh] >= 80, "High",
+    IF('EV_Data'[Battery_kwh] >= 60, "Medium", "Low")
+)
+
+
+
+
+------------------------------------------------------------
+4. VEHICLE AGE CALCULATIONS
+------------------------------------------------------------
+
+Vehicle Age =
+YEAR(TODAY()) - 'EV_Data'[Model Year]
+
+Age Group =
+IF([Vehicle Age] > 8, "Old",
+    IF([Vehicle Age] >= 3, "Moderate", "New")
+)
+
+
+
+
+------------------------------------------------------------
+5. TOP N METRICS
+------------------------------------------------------------
+
+Top 3 High Category EVs (Table Filter) =
+TOPN(
+    3,
+    FILTER(
+        'EV_Data',
+        'EV_Data'[Range Category] = "High"
+        && 'EV_Data'[Price Category] = "High"
+        && 'EV_Data'[Battery Category] = "High"
+    ),
+    [Total Vehicles], DESC
+)
+
+Top 2 Counties =
+TOPN(
+    2,
+    SUMMARIZE(
+        'EV_Data',
+        'EV_Data'[County],
+        "VehicleCount", COUNTROWS('EV_Data')
+    ),
+    [VehicleCount], DESC
+)
+
+
+
+
+
+------------------------------------------------------------
+6. COMPOSITE SCORE (Optional Ranking)
+------------------------------------------------------------
+
+Composite Score =
+VAR rangeScore = NORMALIZE( 'EV_Data'[Electric Range] )
+VAR priceScore = NORMALIZE( 'EV_Data'[Base MSRP] )
+VAR battScore = NORMALIZE( 'EV_Data'[Battery_kwh] )
+RETURN (rangeScore * 0.4) + (battScore * 0.4) + (priceScore * 0.2)
+
+
+
+------------------------------------------------------------
+7. TOOLTIP MEASURES (Model-Level Insights)
+------------------------------------------------------------
+
+Tooltip_Avg_Range =
+AVERAGE('EV_Data'[Electric Range])
+
+Tooltip_Avg_MSRP =
+AVERAGE('EV_Data'[Base MSRP])
+
+Tooltip_Total_Models =
+DISTINCTCOUNT('EV_Data'[Model])
+
+
